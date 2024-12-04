@@ -67,11 +67,24 @@ fn readGridWord(grid: [GRID_SIZE][GRID_SIZE]u8, word: []const u8, row: usize, co
 
 pub fn main() !void {
     const grid = readGrid();
-    var count: usize = 0;
+    var part1: usize = 0;
+    var part2: usize = 0;
+    // part 1
     for (0..GRID_SIZE) |r| {
         for (0..GRID_SIZE) |c| {
-            count += readGridWord(grid, "XMAS", r, c);
+            part1 += readGridWord(grid, "XMAS", r, c);
         }
     }
-    std.debug.print("{d}\n", .{count});
+    // part 2
+    for (1..GRID_SIZE - 1) |r| {
+        for (1..GRID_SIZE - 1) |c| {
+            if (grid[r][c] == 'A') {
+                if (((grid[r - 1][c - 1] == 'M' and grid[r + 1][c + 1] == 'S') or (grid[r - 1][c - 1] == 'S' and grid[r + 1][c + 1] == 'M')) and ((grid[r - 1][c + 1] == 'M' and grid[r + 1][c - 1] == 'S') or (grid[r - 1][c + 1] == 'S' and grid[r + 1][c - 1] == 'M'))) {
+                    part2 += 1;
+                }
+            }
+        }
+    }
+    std.debug.print("{d}\n", .{part1});
+    std.debug.print("{d}\n", .{part2});
 }
