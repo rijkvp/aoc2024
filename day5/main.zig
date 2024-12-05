@@ -2,19 +2,26 @@ const std = @import("std");
 const input = @embedFile("input");
 const allocator = std.heap.page_allocator;
 
-fn checkOrder(updateNumbers: []u64, orderingRules: [][2]u64) bool {
+fn checkOrder(updateNumbers: []const u64, orderingRules: []const [2]u64) bool {
     for (orderingRules) |rule| {
-        const result = std.mem.indexOfScalar(u64, updateNumbers, rule[0]);
-        if (result) |idx| {
-            // rule[1] should not occur before that index
-            for (0..idx) |i| {
-                if (updateNumbers[i] == rule[1]) {
-                    return false;
-                }
-            }
+        const idx1 = std.mem.indexOfScalar(u64, updateNumbers, rule[0]) orelse continue;
+        const idx2 = std.mem.indexOfScalar(u64, updateNumbers, rule[1]) orelse continue;
+        if (idx2 < idx1) {
+            return false;
         }
     }
     return true;
+}
+
+fn fixOrder(updateNumbers: *std.ArrayList(u64), orderingRules: []const [2]u64) !void {
+    for (orderingRules) |rule| {
+        const idx1 = std.mem.indexOfScalar(u64, updateNumbers.items, rule[0]) orelse continue;
+        const idx2 = std.mem.indexOfScalar(u64, updateNumbers.items, rule[1]) orelse continue;
+        if (idx2 < idx1) {
+            const rem = updateNumbers.orderedRemove(idx2);
+            try updateNumbers.insert(idx1, rem);
+        }
+    }
 }
 
 pub fn main() !void {
@@ -30,6 +37,7 @@ pub fn main() !void {
         try orderingRules.append(.{ left, right });
     }
     var part1: u64 = 0;
+    var part2: u64 = 0;
     while (lines.next()) |line| {
         if (line.len == 0) {
             break;
@@ -45,7 +53,15 @@ pub fn main() !void {
         if (checkOrder(updateNumbers.items, orderingRules.items)) {
             const mid = updateNumbers.items[updateNumbers.items.len / 2];
             part1 += mid;
+        } else {
+            // I know, very stupid but it works :-)
+            while (!checkOrder(updateNumbers.items, orderingRules.items)) {
+                try fixOrder(&updateNumbers, orderingRules.items);
+            }
+            const mid = updateNumbers.items[updateNumbers.items.len / 2];
+            part2 += mid;
         }
     }
-    std.debug.print("{d}", .{part1});
+    std.debug.print("{d}\n", .{part1});
+    std.debug.print("{d}\n", .{part2});
 }
