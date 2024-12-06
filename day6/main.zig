@@ -1,6 +1,6 @@
 const std = @import("std");
-const input = @embedFile("example");
-const GRID_SIZE: usize = 10;
+const input = @embedFile("input");
+const GRID_SIZE: usize = 130;
 
 fn readGrid() [GRID_SIZE][GRID_SIZE]u8 {
     var grid: [GRID_SIZE][GRID_SIZE]u8 = undefined;
@@ -46,7 +46,7 @@ fn countVisisted(start_row: usize, start_col: usize, obstacles: *[GRID_SIZE][GRI
         const next = calculateDir(dir, row, col) orelse break;
         var r = next[0];
         var c = next[1];
-        if (obstacles[r][c]) {
+        while (obstacles[r][c]) {
             // switch direction
             dir = (dir + 1) % 4;
             const next2 = calculateDir(dir, row, col) orelse break;
@@ -66,24 +66,22 @@ fn countVisisted(start_row: usize, start_col: usize, obstacles: *[GRID_SIZE][GRI
     }
     return count;
 }
-const one: u8 = 1;
 
 fn loops(start_row: usize, start_col: usize, obstacles: *[GRID_SIZE][GRID_SIZE]bool) bool {
-    // bitmap
-    var visited: [GRID_SIZE][GRID_SIZE]u8 = std.mem.zeroes([GRID_SIZE][GRID_SIZE]u8);
+    var visited: [GRID_SIZE][GRID_SIZE][4]bool = std.mem.zeroes([GRID_SIZE][GRID_SIZE][4]bool);
     var row: usize = start_row;
     var col: usize = start_col;
     var dir: u3 = 0;
     while (true) {
-        if ((visited[row][col] & (one << dir)) > 0) {
+        if (visited[row][col][dir]) {
             // already visited in same direction = looping
             return true;
         }
-        visited[row][col] |= one << dir;
+        visited[row][col][dir] = true;
         const next = calculateDir(dir, row, col) orelse break;
         var r = next[0];
         var c = next[1];
-        if (obstacles[r][c]) {
+        while (obstacles[r][c]) {
             // switch direction
             dir = (dir + 1) % 4;
             const next2 = calculateDir(dir, row, col) orelse break;
