@@ -47,15 +47,18 @@ pub fn main() !void {
     try parseInput(&antennas);
 
     var part1: u64 = 0;
+    var part2: u64 = 0;
     var antinodes: [GRID_SIZE][GRID_SIZE]bool = std.mem.zeroes([GRID_SIZE][GRID_SIZE]bool);
+    var antinodes2: [GRID_SIZE][GRID_SIZE]bool = std.mem.zeroes([GRID_SIZE][GRID_SIZE]bool);
     for (0..FREQS) |idx| {
         const list = antennas[idx];
         for (0..list.items.len) |i| {
             for (i + 1..list.items.len) |j| {
-                const a = list.items[i];
-                const b = list.items[j];
+                var a = list.items[i];
+                var b = list.items[j];
                 const dx = b.x - a.x;
                 const dy = b.y - a.y;
+                // part 1
                 const c = Point{ .x = a.x - dx, .y = a.y - dy };
                 const d = Point{ .x = b.x + dx, .y = b.y + dy };
                 if (inBounds(c)) {
@@ -63,6 +66,17 @@ pub fn main() !void {
                 }
                 if (inBounds(d)) {
                     antinodes[@intCast(d.y)][@intCast(d.x)] = true;
+                }
+                // part 2
+                while (inBounds(a)) {
+                    antinodes2[@intCast(a.y)][@intCast(a.x)] = true;
+                    a.x -= dx;
+                    a.y -= dy;
+                }
+                while (inBounds(b)) {
+                    antinodes2[@intCast(b.y)][@intCast(b.x)] = true;
+                    b.x += dx;
+                    b.y += dy;
                 }
             }
         }
@@ -73,9 +87,13 @@ pub fn main() !void {
             if (antinodes[y][x]) {
                 part1 += 1;
             }
+            if (antinodes2[y][x]) {
+                part2 += 1;
+            }
         }
     }
     std.debug.print("{d}\n", .{part1});
+    std.debug.print("{d}\n", .{part2});
 
     for (0..FREQS) |idx| {
         defer antennas[idx].deinit();
