@@ -1,14 +1,14 @@
 const std = @import("std");
 const input = @embedFile("input");
 const alloc = std.heap.page_allocator;
-const GRID_SIZE: usize = 57;
+const grid_size: usize = 57;
 
-fn readGrid() [GRID_SIZE][GRID_SIZE]u8 {
-    var grid: [GRID_SIZE][GRID_SIZE]u8 = undefined;
+fn readGrid() [grid_size][grid_size]u8 {
+    var grid: [grid_size][grid_size]u8 = undefined;
     var lines = std.mem.tokenizeScalar(u8, input, '\n');
     var r: usize = 0;
     while (lines.next()) |line| {
-        if (r >= GRID_SIZE) {
+        if (r >= grid_size) {
             break;
         }
         for (line, 0..) |char, c| {
@@ -29,13 +29,13 @@ fn calculateDir(dir: usize, row: usize, col: usize) ?[2]usize {
         3 => .{ r, c - 1 }, // west
         else => unreachable,
     };
-    if (coords[0] < 0 or coords[0] >= GRID_SIZE or coords[1] < 0 or coords[1] >= GRID_SIZE) {
+    if (coords[0] < 0 or coords[0] >= grid_size or coords[1] < 0 or coords[1] >= grid_size) {
         return null;
     }
     return .{ @intCast(coords[0]), @intCast(coords[1]) };
 }
 
-fn findTrails(height: u8, row: usize, col: usize, grid: *const [GRID_SIZE][GRID_SIZE]u8, results: *std.ArrayList([2]usize)) !void {
+fn findTrails(height: u8, row: usize, col: usize, grid: *const [grid_size][grid_size]u8, results: *std.ArrayList([2]usize)) !void {
     if (height == 9) {
         const coords = .{ row, col };
         for (results.items) |item| {
@@ -55,6 +55,21 @@ fn findTrails(height: u8, row: usize, col: usize, grid: *const [GRID_SIZE][GRID_
     }
 }
 
+fn trailRating(height: u8, row: usize, col: usize, grid: *const [grid_size][grid_size]u8) u64 {
+    var total: u64 = 0;
+    if (height == 9) {
+        return 1;
+    }
+    for (0..4) |dir| {
+        if (calculateDir(dir, row, col)) |coords| {
+            if (grid[coords[0]][coords[1]] == height + 1) {
+                total += trailRating(height + 1, coords[0], coords[1], grid);
+            }
+        }
+    }
+    return total;
+}
+
 pub fn main() !void {
     const grid = readGrid();
 
@@ -62,15 +77,18 @@ pub fn main() !void {
     defer results.deinit();
 
     var part1: u64 = 0;
-    for (0..GRID_SIZE) |r| {
-        for (0..GRID_SIZE) |c| {
+    var part2: u64 = 0;
+    for (0..grid_size) |r| {
+        for (0..grid_size) |c| {
             if (grid[r][c] == 0) {
                 results.clearRetainingCapacity();
                 try findTrails(0, r, c, &grid, &results);
                 part1 += results.items.len;
+                part2 += trailRating(0, r, c, &grid);
             }
         }
     }
 
     std.debug.print("{d}\n", .{part1});
+    std.debug.print("{d}\n", .{part2});
 }
