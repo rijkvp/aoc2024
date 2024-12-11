@@ -22,7 +22,6 @@ fn splitNumber(num: u64, digits: u64) [2]u64 {
         a /= 10;
         c *= 10;
     }
-
     return .{ a, b };
 }
 
@@ -41,6 +40,31 @@ fn blink(stone: u64, count: u64, comptime limit: u64) u64 {
     return blink(stone * 2024, count + 1, limit);
 }
 
+var memo = std.AutoHashMap([2]u64, u64).init(alloc);
+
+fn memoBlink(stone: u64, count: u64, comptime limit: u64) !u64 {
+    if (count == limit) {
+        return 1;
+    }
+    if (memo.get(.{ stone, count })) |result| {
+        return result;
+    }
+    var result: u64 = 0;
+    if (stone == 0) {
+        result = try memoBlink(1, count + 1, limit);
+    } else {
+        const numDigits = countDigits(stone);
+        if (numDigits % 2 == 0) {
+            const split = splitNumber(stone, numDigits);
+            result = try memoBlink(split[0], count + 1, limit) + try memoBlink(split[1], count + 1, limit);
+        } else {
+            result = try memoBlink(stone * 2024, count + 1, limit);
+        }
+    }
+    try memo.put(.{ stone, count }, result);
+    return result;
+}
+
 pub fn main() !void {
     var stones = std.ArrayList(u64).init(alloc);
     defer stones.deinit();
@@ -53,8 +77,11 @@ pub fn main() !void {
     }
 
     var part1: u64 = 0;
+    var part2: u64 = 0;
     for (stones.items) |stone| {
         part1 += blink(stone, 0, 25);
+        part2 += try memoBlink(stone, 0, 75);
     }
     std.debug.print("{d}\n", .{part1});
+    std.debug.print("{d}\n", .{part2});
 }
