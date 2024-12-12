@@ -1,51 +1,12 @@
 const std = @import("std");
+const aoc = @import("aoc.zig");
 const input = @embedFile("input");
 const alloc = std.heap.page_allocator;
 
-const Cell = u8;
-const Grid = [grid_size][grid_size]Cell;
+const grid_size: usize = aoc.gridSize(input);
+const grid = aoc.readGrid(grid_size, input);
 
-const grid_size: usize = gridSize();
-const grid = readGrid();
-
-fn gridSize() usize {
-    return std.mem.indexOfScalar(u8, input, '\n').?;
-}
-
-fn readGrid() Grid {
-    @setEvalBranchQuota(grid_size * grid_size * 10);
-    var grid2: Grid = std.mem.zeroes(Grid);
-    var lines = std.mem.tokenizeScalar(u8, input, '\n');
-    var r: usize = 0;
-    while (lines.next()) |line| {
-        if (r >= grid_size) {
-            break;
-        }
-        for (line, 0..) |char, c| {
-            grid2[r][c] = char;
-        }
-        r += 1;
-    }
-    return grid2;
-}
-
-fn neighbourningPlot(dir: usize, row: usize, col: usize, comptime rows: usize, comptime cols: usize) ?[2]usize {
-    const r: isize = @intCast(row);
-    const c: isize = @intCast(col);
-    const coords: [2]isize = switch (dir) {
-        0 => .{ r - 1, c }, // north
-        1 => .{ r, c + 1 }, // east
-        2 => .{ r + 1, c }, // south
-        3 => .{ r, c - 1 }, // west
-        else => unreachable,
-    };
-    if (coords[0] < 0 or coords[0] >= rows or coords[1] < 0 or coords[1] >= cols) {
-        return null;
-    }
-    return .{ @intCast(coords[0]), @intCast(coords[1]) };
-}
-
-fn calcArea(region: [grid_size][grid_size]bool) u64 {
+fn calcArea(region: aoc.Grid(bool, grid_size)) u64 {
     var area: u64 = 0;
     for (0..grid_size) |r| {
         for (0..grid_size) |c| {
@@ -57,13 +18,13 @@ fn calcArea(region: [grid_size][grid_size]bool) u64 {
     return area;
 }
 
-fn calcPerimeter(region_value: u8, region: [grid_size][grid_size]bool) u64 {
+fn calcPerimeter(region_value: u8, region: aoc.Grid(bool, grid_size)) u64 {
     var perimeter: u64 = 0;
     for (0..grid_size) |r| {
         for (0..grid_size) |c| {
             if (region[r][c]) {
                 for (0..4) |dir| {
-                    if (neighbourningPlot(dir, r, c, grid_size, grid_size)) |neighbour| {
+                    if (aoc.dir4(dir, r, c, grid_size)) |neighbour| {
                         if (grid[neighbour[0]][neighbour[1]] != region_value) {
                             perimeter += 1;
                         }
@@ -77,42 +38,29 @@ fn calcPerimeter(region_value: u8, region: [grid_size][grid_size]bool) u64 {
     return perimeter;
 }
 
-fn printGrid(comptime rows: usize, comptime cols: usize, values: [rows][cols]bool) void {
-    for (0..rows) |r| {
-        for (0..cols) |c| {
-            if (values[r][c]) {
-                std.debug.print("#", .{});
-            } else {
-                std.debug.print(".", .{});
-            }
-        }
-        std.debug.print("\n", .{});
-    }
-}
-
-fn countRegions(comptime rows: usize, comptime cols: usize, edges: [rows][cols]bool) !u64 {
+fn countRegions(comptime size: usize, regions: aoc.Grid(bool, size)) !u64 {
     var stack = std.ArrayList([2]usize).init(alloc);
     defer stack.deinit();
     var count: u64 = 0;
-    var covered: [rows][cols]bool = std.mem.zeroes([rows][cols]bool);
-    var region: [rows][cols]bool = undefined;
-    for (0..rows) |r| {
-        for (0..cols) |c| {
-            if (covered[r][c] or !edges[r][c]) {
+    var visited: aoc.Grid(bool, size) = std.mem.zeroes(aoc.Grid(bool, size));
+    var region: aoc.Grid(bool, size) = undefined;
+    for (0..size) |r| {
+        for (0..size) |c| {
+            if (visited[r][c] or !regions[r][c]) {
                 continue;
             }
-            region = std.mem.zeroes([rows][cols]bool);
+            region = std.mem.zeroes([size][size]bool);
             try stack.append(.{ r, c });
             while (stack.popOrNull()) |plot| {
                 const row = plot[0];
                 const col = plot[1];
-                if (!edges[row][col] or region[row][col]) {
+                if (!regions[row][col] or region[row][col]) {
                     continue;
                 }
                 region[row][col] = true;
-                covered[row][col] = true;
+                visited[row][col] = true;
                 for (0..4) |dir| {
-                    if (neighbourningPlot(dir, row, col, grid_size + 2, grid_size + 2)) |neighbour| {
+                    if (aoc.dir4(dir, row, col, grid_size + 2)) |neighbour| {
                         try stack.append(neighbour);
                     }
                 }
@@ -123,17 +71,15 @@ fn countRegions(comptime rows: usize, comptime cols: usize, edges: [rows][cols]b
     return count;
 }
 
-fn calcSides(region_value: u8, region: [grid_size][grid_size]bool) !u64 {
+fn calcSides(region_value: u8, region: aoc.Grid(bool, grid_size)) !u64 {
     var sides: u64 = 0;
-    var edges: [grid_size + 2][grid_size + 2]bool = undefined;
-    // std.debug.print("Region {c}\n", .{region_value});
-    // printGrid(grid_size, grid_size, region);
+    var edges: aoc.Grid(bool, grid_size + 2) = undefined;
     for (0..4) |dir| {
-        edges = std.mem.zeroes([grid_size + 2][grid_size + 2]bool);
+        edges = std.mem.zeroes(aoc.Grid(bool, grid_size + 2));
         for (0..grid_size) |r| {
             for (0..grid_size) |c| {
                 if (region[r][c]) {
-                    if (neighbourningPlot(dir, r, c, grid_size, grid_size)) |neighbour| {
+                    if (aoc.dir4(dir, r, c, grid_size)) |neighbour| {
                         if (grid[neighbour[0]][neighbour[1]] != region_value) {
                             edges[r + 1][c + 1] = true;
                         }
@@ -143,10 +89,7 @@ fn calcSides(region_value: u8, region: [grid_size][grid_size]bool) !u64 {
                 }
             }
         }
-        // std.debug.print("Edges {d}\n", .{dir});
-        // printGrid(grid_size + 2, grid_size + 2, edges);
-        const regions = try countRegions(grid_size + 2, grid_size + 2, edges);
-        // std.debug.print("Regions {d}\n", .{regions});
+        const regions = try countRegions(grid_size + 2, edges);
         sides += regions;
     }
     return sides;
@@ -156,8 +99,8 @@ pub fn main() !void {
     var stack = std.ArrayList([2]usize).init(alloc);
     defer stack.deinit();
 
-    var covered: [grid_size][grid_size]bool = std.mem.zeroes([grid_size][grid_size]bool);
-    var region: [grid_size][grid_size]bool = undefined;
+    var covered: aoc.Grid(bool, grid_size) = std.mem.zeroes(aoc.Grid(bool, grid_size));
+    var region: aoc.Grid(bool, grid_size) = undefined;
 
     var part1: u64 = 0;
     var part2: u64 = 0;
@@ -180,7 +123,7 @@ pub fn main() !void {
                 region[row][col] = true;
                 covered[row][col] = true;
                 for (0..4) |dir| {
-                    if (neighbourningPlot(dir, row, col, grid_size, grid_size)) |neighbour| {
+                    if (aoc.dir4(dir, row, col, grid_size)) |neighbour| {
                         try stack.append(neighbour);
                     }
                 }
@@ -188,7 +131,6 @@ pub fn main() !void {
             const area = calcArea(region);
             const perimeter = calcPerimeter(region_value, region);
             const sides = try calcSides(region_value, region);
-            // std.debug.print("Region {c} sides {d}\n", .{ region_value, sides });
             part1 += area * perimeter;
             part2 += area * sides;
         }
