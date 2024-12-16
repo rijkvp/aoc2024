@@ -112,12 +112,12 @@ pub fn main() !void {
                 if (visited[neighbour[0]][neighbour[1]]) {
                     continue;
                 }
-                if (direction[neighbour[0]][neighbour[1]] == current_dir) {
+                if (dir == current_dir) {
                     score[neighbour[0]][neighbour[1]] = current_score + 1;
                 } else {
                     score[neighbour[0]][neighbour[1]] = current_score + 1000;
-                    direction[neighbour[0]][neighbour[1]] = @intCast(dir);
                 }
+                direction[neighbour[0]][neighbour[1]] = @intCast(dir);
             }
         }
         // visitted
