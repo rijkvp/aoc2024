@@ -40,13 +40,20 @@ fn dir4(dir: usize, row: usize, col: usize) ?[2]usize {
     return .{ @intCast(coords[0]), @intCast(coords[1]) };
 }
 
-fn printScores(grid2: [grid_size][grid_size]u64) void {
-    for (grid2) |row| {
-        for (row) |cell| {
-            if (cell == std.math.maxInt(u64)) {
-                std.debug.print("X    ", .{});
+fn printDirs(directions: [grid_size][grid_size]u8) void {
+    for (0..grid_size) |r| {
+        for (0..grid_size) |c| {
+            const dir = directions[r][c];
+            if (dir == 5) {
+                std.debug.print(".", .{});
             } else {
-                std.debug.print("{d:5}", .{cell});
+                switch (dir) {
+                    0 => std.debug.print("^", .{}),
+                    1 => std.debug.print(">", .{}),
+                    2 => std.debug.print("v", .{}),
+                    3 => std.debug.print("<", .{}),
+                    else => unreachable,
+                }
             }
         }
         std.debug.print("\n", .{});
@@ -69,7 +76,7 @@ pub fn main() !void {
             }
         }
     }
-
+    // 'Slow' version of Dijkstra, Zig has no priority queue data structure :(
     var visited: [grid_size][grid_size]bool = std.mem.zeroes([grid_size][grid_size]bool);
     var score: [grid_size][grid_size]u64 = undefined;
     var direction: [grid_size][grid_size]u8 = undefined;
@@ -77,14 +84,15 @@ pub fn main() !void {
         for (0..grid_size) |c| {
             if (start_row == r and start_col == c) {
                 score[r][c] = 0;
-            } else if (grid[r][c] == '#') {
-                visited[r][c] = true;
             } else {
                 score[r][c] = std.math.maxInt(u64);
+                if (grid[r][c] == '#')
+                    visited[r][c] = true;
             }
-            direction[r][c] = 1; // east
+            direction[r][c] = 5; // none
         }
     }
+    direction[start_row][start_col] = 1; // east
     while (true) {
         // find min
         var min_row: usize = 0;
@@ -108,26 +116,21 @@ pub fn main() !void {
         const current_dir = direction[min_row][min_col];
         // update neighbours
         for (0..4) |dir| {
-            if (dir4(dir, min_row, min_col)) |neighbour| {
-                if (visited[neighbour[0]][neighbour[1]]) {
+            if (dir4(dir, min_row, min_col)) |nb| {
+                if (visited[nb[0]][nb[1]]) {
                     continue;
                 }
                 if (dir == current_dir) {
-                    score[neighbour[0]][neighbour[1]] = current_score + 1;
+                    score[nb[0]][nb[1]] = current_score + 1;
                 } else {
-                    score[neighbour[0]][neighbour[1]] = current_score + 1000;
+                    score[nb[0]][nb[1]] = current_score + 1001;
                 }
-                direction[neighbour[0]][neighbour[1]] = @intCast(dir);
+                direction[nb[0]][nb[1]] = @intCast(dir);
             }
         }
         // visitted
         visited[min_row][min_col] = true;
     }
-    if (visited[end_row][end_col]) {
-        std.debug.print("Found path\n", .{});
-    } else {
-        std.debug.print("No path\n", .{});
-    }
-    printScores(score);
-    std.debug.print("Done {}", .{score[end_row][end_col]});
+    printDirs(direction);
+    std.debug.print("{}\n", .{score[end_row][end_col]});
 }
