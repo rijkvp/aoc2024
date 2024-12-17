@@ -1,5 +1,5 @@
 const std = @import("std");
-const input = @embedFile("input");
+const input = @embedFile("example2");
 const alloc = std.heap.page_allocator;
 
 fn readRegisters(register_input: []const u8) ![3]i64 {
@@ -91,7 +91,26 @@ pub fn main() !void {
     const instructions = try readInstructions(instruction_input);
     defer instructions.deinit();
 
+    // part 1
     const output = try emulate(instructions.items, registers);
     defer output.deinit();
     printOutput(output.items);
+    // part 2
+    var reg_a: i64 = 0;
+    outer: while (true) {
+        const output2 = try emulate(instructions.items, .{ reg_a, registers[1], registers[2] });
+        if (output2.items.len == instructions.items.len) {
+            var equal = true;
+            for (instructions.items, output2.items) |in, out| {
+                if (in != out) {
+                    equal = false;
+                    break;
+                }
+            }
+            if (equal) break :outer;
+        }
+        defer output2.deinit();
+        reg_a += 1;
+    }
+    std.debug.print("{d}\n", .{reg_a});
 }
