@@ -1,5 +1,5 @@
 const std = @import("std");
-const input = @embedFile("example2");
+const input = @embedFile("input");
 const alloc = std.heap.page_allocator;
 
 fn readRegisters(register_input: []const u8) ![3]i64 {
@@ -38,9 +38,9 @@ inline fn divpow2(a: i64, b: i64) i64 {
     return a >> @intCast(b);
 }
 
-fn emulate(instructions: []const u3, register_values: [3]i64) !std.ArrayList(i64) {
+fn emulate(instructions: []const u3, register_values: [3]i64) !std.ArrayList(u3) {
     var ip: usize = 0;
-    var output = std.ArrayList(i64).init(alloc);
+    var output = std.ArrayList(u3).init(alloc);
     var registers: [3]i64 = register_values;
     while (ip < instructions.len) {
         const opcode = instructions[ip];
@@ -62,7 +62,7 @@ fn emulate(instructions: []const u3, register_values: [3]i64) !std.ArrayList(i64
                 jumped = true;
             },
             4 => registers[1] ^= registers[2],
-            5 => try output.append(@mod(combo_operand.?, 8)),
+            5 => try output.append(@intCast(@mod(combo_operand.?, 8))),
             6 => registers[1] = divpow2(registers[0], combo_operand.?),
             7 => registers[2] = divpow2(registers[0], combo_operand.?),
         }
@@ -73,7 +73,7 @@ fn emulate(instructions: []const u3, register_values: [3]i64) !std.ArrayList(i64
     return output;
 }
 
-fn printOutput(output: []const i64) void {
+fn printOutput(output: []const u3) void {
     for (output, 0..) |out, i| {
         std.debug.print("{d}", .{out});
         if (i < output.len - 1) {
@@ -81,6 +81,25 @@ fn printOutput(output: []const i64) void {
         }
     }
     std.debug.print("\n", .{});
+}
+
+// Recursively finds the value of register A that will make the program
+// output the last instruction
+// The program depends on A mod 8, and devides by 8 each iteration:
+// we try all offsets of 8 * A + k that produce the desired output
+fn find_rega_value(i: usize, current: u64, instructions: []const u3) !?u64 {
+    if (i == instructions.len) {
+        return current;
+    }
+    for (0..8) |k| {
+        const reg_a = 8 * current + @as(u64, k);
+        const output = try emulate(instructions, .{ @intCast(reg_a), 0, 0 });
+        defer output.deinit();
+        if (output.items[0] == instructions[instructions.len - i - 1]) {
+            return try find_rega_value(i + 1, reg_a, instructions) orelse continue;
+        }
+    }
+    return null;
 }
 
 pub fn main() !void {
@@ -96,21 +115,6 @@ pub fn main() !void {
     defer output.deinit();
     printOutput(output.items);
     // part 2
-    var reg_a: i64 = 0;
-    outer: while (true) {
-        const output2 = try emulate(instructions.items, .{ reg_a, registers[1], registers[2] });
-        if (output2.items.len == instructions.items.len) {
-            var equal = true;
-            for (instructions.items, output2.items) |in, out| {
-                if (in != out) {
-                    equal = false;
-                    break;
-                }
-            }
-            if (equal) break :outer;
-        }
-        defer output2.deinit();
-        reg_a += 1;
-    }
-    std.debug.print("{d}\n", .{reg_a});
+    const reg_a = try find_rega_value(0, 0, instructions.items);
+    std.debug.print("{d}\n", .{reg_a.?});
 }
