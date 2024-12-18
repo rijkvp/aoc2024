@@ -1,0 +1,11 @@
+[package]
+name = "aoc2024"
+edition = "2021"
+
+[[bin]]
+name = "day16"
+path = "day16/main.rs"
+
+[[bin]]
+name = "day18"
+path = "day18/main.rs"

@@ -12,6 +12,8 @@
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = [
           pkgs.zig
+          pkgs.rustc
+          pkgs.cargo
         ];
       };
     };
