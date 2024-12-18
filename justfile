@@ -17,3 +17,8 @@ start:
 
 run:
     cargo run --bin {{day_fmt}} < input/{{day_fmt}}.txt
+
+[script]
+runday day:
+    day_fmt=$(printf '%02d' {{day}})
+    cat ./input/$day_fmt.txt | cargo run --bin "$day_fmt"
