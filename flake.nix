@@ -9,12 +9,18 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        nativeBuildInputs = [
-          pkgs.zig
-          pkgs.rustc
-          pkgs.cargo
-        ];
-      };
+      devShells.${system}.default =
+        with pkgs;
+        mkShell {
+          packages = [
+            zig
+            rustc
+            cargo
+            aoc-cli
+          ];
+          shellHook = ''
+            export JUST_UNSTABLE=1
+          '';
+        };
     };
 }

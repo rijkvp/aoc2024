@@ -3,9 +3,10 @@ name = "aoc2024"
 edition = "2021"
 
 [[bin]]
-name = "day16"
-path = "day16/main.rs"
+name = "16"
+path = "16.rs"
 
 [[bin]]
-name = "day18"
-path = "day18/main.rs"
+name = "18"
+path = "18.rs"
+

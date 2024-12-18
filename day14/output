@@ -1,2 +1,0 @@
-main.zig:92:14: error: type 'array_list.ArrayListAligned(main.Robot,null)' is not indexable and not a range
-main.zig:92:14: note: for loop operand must be a range, array, slice, tuple, or vector
