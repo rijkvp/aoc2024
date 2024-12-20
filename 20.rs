@@ -74,28 +74,6 @@ fn find_path(
     })
 }
 
-fn print_map(grid: &Vec<Vec<char>>) {
-    for row in grid.iter() {
-        for cell in row.iter() {
-            print!("{cell}");
-        }
-        println!();
-    }
-}
-
-fn print_track(grid: &Vec<Vec<char>>, track: &HashMap<(usize, usize), usize>) {
-    for (r, row) in grid.iter().enumerate() {
-        for (c, cell) in row.iter().enumerate() {
-            if let Some(t) = track.get(&(r, c)) {
-                print!("{t:<3}");
-            } else {
-                print!("{cell:<3}");
-            }
-        }
-        println!();
-    }
-}
-
 fn main() {
     let grid = BufReader::new(stdin())
         .lines()
@@ -119,12 +97,15 @@ fn main() {
     let track_pos: HashMap<(usize, usize), usize> =
         track.iter().enumerate().map(|(n, p)| (*p, n)).collect();
 
-    let mut part1 = 0;
-    for pos in track {
+    let (height, width) = (grid.len(), grid[0].len());
+
+    let mut part1 = 0u64;
+    let mut part2 = 0u64;
+    for pos @ (r, c) in track {
         let start_score = track_pos.get(&pos).unwrap();
         for dir in 0..4 {
-            let pos1 = pos_in_dir(pos, dir, 1, grid.len(), grid[0].len());
-            let pos2 = pos_in_dir(pos, dir, 2, grid.len(), grid[0].len());
+            let pos1 = pos_in_dir(pos, dir, 1, height, width);
+            let pos2 = pos_in_dir(pos, dir, 2, height, width);
             if let (Some(pos1), Some(pos2)) = (pos1, pos2) {
                 if let Some(end_score) = track_pos.get(&pos2) {
                     if grid[pos1.0][pos1.1] == '#' && end_score > start_score {
@@ -136,6 +117,19 @@ fn main() {
                 }
             }
         }
+        for rr in r.saturating_sub(20)..=(r + 20).min(height - 1) {
+            for cc in c.saturating_sub(20)..=(c + 20).min(width - 1) {
+                let cheat_dist = r.abs_diff(rr) + c.abs_diff(cc);
+                if let Some(end_score) = track_pos.get(&(rr, cc)) {
+                    if end_score > start_score
+                        && cheat_dist <= 20
+                        && (end_score - start_score - cheat_dist) >= 100
+                    {
+                        part2 += 1;
+                    }
+                }
+            }
+        }
     }
-    println!("{part1}");
+    println!("{part1}\n{part2}");
 }

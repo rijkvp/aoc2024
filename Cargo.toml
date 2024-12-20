@@ -2,6 +2,9 @@
 name = "aoc2024"
 edition = "2021"
 
+[profile.release]
+overflow-checks = true
+
 [[bin]]
 name = "16"
 path = "16.rs"
